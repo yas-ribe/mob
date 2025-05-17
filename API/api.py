@@ -4,6 +4,8 @@ import pandas as pd
 import ia
 import datetime
 from datetime import datetime
+import time
+import psutil
 
 # Importações para o ORS
 import os
@@ -19,6 +21,11 @@ nextId = 0
 
 ORS_API_KEY = '5b3ce3597851110001cf6248b246d8e65ded4136b7f9a45e60d96167'
 
+# Variáveis globais para monitoramento
+metricas_tempo = []
+metricas_cpu = []
+metricas_mem = []
+
 @app.route('/dados', methods=['GET'])
 def get_data():
  return jsonify(dados)
@@ -33,6 +40,10 @@ def data_is_valid(dados):
 @app.route('/calcular', methods=['POST'])
 def create_data():
   global nextId
+  start_time = time.time()
+  process = psutil.Process()
+  cpu_before = process.cpu_percent(interval=None)
+  mem_before = process.memory_info().rss / 1024 / 1024  # em MB
   dado = json.loads(request.data)
   if not data_is_valid(dado):
     return jsonify({ 'erro': 'propriedades inválidas.' }), 400
@@ -70,12 +81,35 @@ def create_data():
   entrada_scaled = scaler.transform(entrada)
   pred = round(modelo.predict(entrada_scaled)[0], 2)
 
+  # Monitoramento
+  cpu_after = process.cpu_percent(interval=None)
+  mem_after = process.memory_info().rss / 1024 / 1024 
+  elapsed = time.time() - start_time
+  metricas_tempo.append(elapsed)
+  metricas_cpu.append(cpu_after)
+  metricas_mem.append(mem_after)
+
   dado['id'] = nextId
   nextId += 1
 
   dados.append(dado)
 
   return jsonify(pred)
+
+@app.route('/monitoramento', methods=['GET'])
+def monitoramento():
+  if metricas_tempo:
+    tempo_medio = sum(metricas_tempo) / len(metricas_tempo)
+    cpu_media = sum(metricas_cpu) / len(metricas_cpu)
+    mem_media = sum(metricas_mem) / len(metricas_mem)
+  else:
+    tempo_medio = cpu_media = mem_media = 0
+  return jsonify({
+    'tempo_resposta_medio_s': round(tempo_medio, 4),
+    'cpu_media_percent': round(cpu_media, 2),
+    'memoria_media_mb': round(mem_media, 2),
+    'total_requisicoes': len(metricas_tempo)
+  })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
