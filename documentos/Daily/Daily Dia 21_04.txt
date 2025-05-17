@@ -1,3 +1,0 @@
-Daily Dia 21/04
-
-Hoje foi dado sequência nas entregas que são para o dia 22, foi feita a regressão linear e K-Means nos dados coletados e também foram gerados os gráficos, também foi dado início na entrega do professor Rafael Rossetti.
