@@ -94,7 +94,11 @@ def create_data():
 
   dados.append(dado)
 
-  return jsonify(pred)
+  return jsonify({
+    'valor' : pred,
+    'distância': distancia,
+    'tempo': duracao
+  })
 
 @app.route('/monitoramento', methods=['GET'])
 def monitoramento():
